@@ -48,6 +48,75 @@ const createRequest = async (req, res) => {
   }
 };
 
+// @desc    Create bulk blood requests
+// @route   POST /api/requests/bulk
+// @access  Private (Recipient only)
+const createBulkRequest = async (req, res) => {
+  try {
+    const { donorIds, bloodGroup, units, hospital, city, urgency, message } = req.body;
+
+    if (!donorIds || donorIds.length === 0) {
+      return res.status(400).json({ message: 'No donors selected' });
+    }
+
+    // Check existing pending requests between recipient and these donors
+    const existingRequests = await BloodRequest.find({
+      recipient: req.user._id,
+      donor: { $in: donorIds },
+      status: 'Pending'
+    });
+
+    const existingDonorIds = existingRequests.map(r => r.donor.toString());
+    const newDonorIds = donorIds.filter(id => !existingDonorIds.includes(id.toString()));
+
+    if (newDonorIds.length === 0) {
+      return res.status(400).json({ 
+        message: 'Pending requests already exist for all selected donors',
+        created: 0
+      });
+    }
+
+    const requestsToCreate = newDonorIds.map(donorId => ({
+      recipient: req.user._id,
+      donor: donorId,
+      bloodGroup,
+      units,
+      hospital,
+      city,
+      urgency,
+      message,
+      status: 'Pending'
+    }));
+
+    await BloodRequest.insertMany(requestsToCreate);
+
+    // Fetch donors to send emails
+    const donors = await User.find({ _id: { $in: newDonorIds } });
+
+    const emailPromises = donors.map(donor => {
+      const emailMessage = `
+        <h3>New Blood Request</h3>
+        <p>You have a new blood request for ${units} units of ${bloodGroup} blood at ${hospital}, ${city}.</p>
+        <p>Urgency: <strong>${urgency}</strong></p>
+        <p>Message: ${message || 'No message provided'}</p>
+        <p>Please log in to your dashboard to accept or reject this request.</p>
+      `;
+      
+      return sendEmail({
+        email: donor.email,
+        subject: `Urgent: Blood Request (${bloodGroup})`,
+        message: emailMessage,
+      });
+    });
+
+    await Promise.all(emailPromises);
+
+    res.status(201).json({ message: 'Requests sent successfully', created: newDonorIds.length });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get user requests (sent or received)
 // @route   GET /api/requests/my
 // @access  Private
@@ -132,4 +201,4 @@ const updateRequestStatus = async (req, res) => {
   }
 };
 
-module.exports = { createRequest, getMyRequests, updateRequestStatus };
+module.exports = { createRequest, createBulkRequest, getMyRequests, updateRequestStatus };

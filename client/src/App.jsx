@@ -14,6 +14,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import SearchDonors from './pages/SearchDonors';
 import BloodGroupDetails from './pages/BloodGroupDetails';
+import BloodGroupDonors from './pages/BloodGroupDonors';
 import Requests from './pages/Requests';
 import NotFound from './pages/NotFound';
 
@@ -45,6 +46,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['recipient', 'admin']} />}>
                 <Route path="/search-donors" element={<SearchDonors />} />
                 <Route path="/search-donors/:bloodGroup" element={<BloodGroupDetails />} />
+                <Route path="/blood-group-donors/:bloodGroup" element={<BloodGroupDonors />} />
                 <Route path="/requests" element={<Requests />} />
               </Route>
 

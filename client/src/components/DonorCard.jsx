@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MapPin, Phone, Droplet } from 'lucide-react';
 
-const DonorCard = ({ donor, onSendRequest }) => {
+const DonorCard = ({ donor, onSendRequest, sendMode = 'Individual' }) => {
   return (
     <div className="card hover:shadow-md transition duration-300 border border-gray-100 overflow-hidden relative">
       <div className="absolute top-0 right-0 p-4">
@@ -37,11 +37,11 @@ const DonorCard = ({ donor, onSendRequest }) => {
         </div>
       </div>
       
-      {onSendRequest && (
+      {onSendRequest && sendMode !== 'All' && (
         <div className="mt-6">
           <button
             onClick={() => onSendRequest(donor)}
-            disabled={!donor.available}
+            disabled={!donor.available || sendMode === 'None'}
             className="w-full btn-primary flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Send Request

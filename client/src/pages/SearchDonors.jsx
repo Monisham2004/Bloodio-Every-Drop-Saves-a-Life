@@ -1,14 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Droplet } from 'lucide-react';
+import BloodGroupCard from '../components/BloodGroupCard';
 import Loader from '../components/Loader';
+import toast from 'react-hot-toast';
+import { Search, Droplet } from 'lucide-react';
 
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 const SearchDonors = () => {
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useState({
+    bloodGroup: '',
+    city: ''
+  });
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,24 +32,85 @@ const SearchDonors = () => {
     fetchDonors();
   }, []);
 
-  const getDonorCount = (bg) => {
-    return donors.filter((donor) => donor.bloodGroup === bg).length;
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault();
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchParams.bloodGroup) params.append('bloodGroup', searchParams.bloodGroup);
+      if (searchParams.city) params.append('city', searchParams.city);
+      
+      const res = await api.get(`/donors/search?${params.toString()}`);
+      setDonors(res.data);
+    } catch (error) {
+      toast.error('Failed to search donors');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const groupedCounts = useMemo(() => {
+    const counts = {};
+    BLOOD_GROUPS.forEach(bg => {
+      counts[bg] = donors.filter(d => d.bloodGroup === bg).length;
+    });
+    return counts;
+  }, [donors]);
+
   const handleCardClick = (bg) => {
-    navigate(`/search-donors/${encodeURIComponent(bg)}`);
+    let url = `/search-donors/${encodeURIComponent(bg)}`;
+    if (searchParams.city) {
+      url += `?city=${encodeURIComponent(searchParams.city)}`;
+    }
+    navigate(url);
   };
 
   return (
-    <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-3 tracking-tight flex items-center justify-center gap-3">
+            <Search className="w-8 h-8 text-primary-600" />
             Find Blood Donors
           </h1>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto">
             Select the blood group you need to find available donors
           </p>
+        </div>
+        
+        <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Blood Group</label>
+              <select
+                value={searchParams.bloodGroup}
+                onChange={(e) => setSearchParams({ ...searchParams, bloodGroup: e.target.value })}
+                className="input-field w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+              >
+                <option value="">All Blood Groups</option>
+                {BLOOD_GROUPS.map(bg => (
+                  <option key={bg} value={bg}>{bg}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input
+                type="text"
+                placeholder="e.g., Bangalore"
+                value={searchParams.city}
+                onChange={(e) => setSearchParams({ ...searchParams, city: e.target.value })}
+                className="input-field w-full bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+              />
+            </div>
+            
+            <div>
+              <button type="submit" className="w-full btn-primary py-3 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-all">
+                <Search className="w-5 h-5" /> Search
+              </button>
+            </div>
+          </form>
         </div>
 
         {loading ? (
@@ -51,21 +119,25 @@ const SearchDonors = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {BLOOD_GROUPS.map((bg) => (
-              <div
-                key={bg}
-                onClick={() => handleCardClick(bg)}
-                className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 hover:border-red-400 hover:shadow-[0_8px_30px_-4px_rgba(239,68,68,0.15)] group"
-              >
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-red-100 transition-colors duration-300">
-                  <Droplet className="w-8 h-8 text-red-500 fill-current" />
-                </div>
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">{bg}</h2>
-                <p className="text-sm font-medium text-gray-500">
-                  {getDonorCount(bg)} {getDonorCount(bg) === 1 ? 'donor' : 'donors'} available
-                </p>
+            {BLOOD_GROUPS.map(bg => {
+              const count = groupedCounts[bg];
+              if (searchParams.bloodGroup && searchParams.bloodGroup !== bg) return null;
+              if (count === 0 && searchParams.city) return null;
+
+              return (
+                <BloodGroupCard 
+                  key={bg}
+                  bloodGroup={bg}
+                  count={count}
+                  onClick={() => handleCardClick(bg)}
+                />
+              );
+            })}
+            {donors.length === 0 && (
+              <div className="col-span-full p-12 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100">
+                No donors found matching your search criteria.
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
