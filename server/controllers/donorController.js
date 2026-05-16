@@ -30,21 +30,33 @@ const searchDonors = async (req, res) => {
 // @access  Private (Donor only)
 const updateAvailability = async (req, res) => {
   try {
+    if (!req.user || !req.user._id) {
+      return res.status(400).json({ message: 'Missing user ID' });
+    }
+
     const user = await User.findById(req.user._id);
 
-    if (user && user.role === 'donor') {
-      user.available = req.body.available !== undefined ? req.body.available : !user.available;
-      const updatedUser = await user.save();
-      
-      res.json({
-        _id: updatedUser._id,
-        available: updatedUser.available
-      });
-    } else {
-      res.status(404).json({ message: 'Donor not found or unauthorized' });
+    if (!user) {
+      return res.status(404).json({ message: 'Donor not found' });
     }
+
+    if (user.role !== 'donor') {
+      return res.status(403).json({ message: 'Only donors can update availability' });
+    }
+
+    user.available = req.body && req.body.available !== undefined 
+      ? req.body.available 
+      : !user.available;
+      
+    const updatedUser = await user.save();
+    
+    res.json({
+      _id: updatedUser._id,
+      available: updatedUser.available,
+      message: 'Availability updated successfully'
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Database error while updating availability' });
   }
 };
 

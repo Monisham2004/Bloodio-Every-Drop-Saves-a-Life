@@ -1,5 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const nodemailer = require('nodemailer');
+
+const otpStore = new Map();
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -12,7 +15,7 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, bloodGroup, phone, city, address } = req.body;
+    const { name, email, password, role, bloodGroup, phone, city, state, address } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -28,6 +31,7 @@ const registerUser = async (req, res) => {
       bloodGroup: role === 'donor' ? bloodGroup : undefined,
       phone,
       city,
+      state,
       address,
     });
 
@@ -92,4 +96,68 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getMe };
+// @desc    Send OTP to email
+// @route   POST /api/auth/send-otp
+// @access  Public
+const sendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
+
+    otpStore.set(email, { otp, expiresAt });
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'BloodLink - Registration OTP',
+      text: `Your OTP for BloodLink registration is: ${otp}. It is valid for 5 minutes.`
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: 'OTP sent successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Verify email OTP
+// @route   POST /api/auth/verify-otp
+// @access  Public
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ message: 'Email and OTP are required' });
+
+    const storedData = otpStore.get(email);
+    if (!storedData) {
+      return res.status(400).json({ message: 'OTP not found or expired' });
+    }
+
+    if (Date.now() > storedData.expiresAt) {
+      otpStore.delete(email);
+      return res.status(400).json({ message: 'OTP has expired' });
+    }
+
+    if (storedData.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    otpStore.delete(email);
+    res.status(200).json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe, sendOtp, verifyOtp };

@@ -37,15 +37,17 @@ const DonorCard = ({ donor, onSendRequest }) => {
         </div>
       </div>
       
-      <div className="mt-6">
-        <button
-          onClick={() => onSendRequest(donor)}
-          disabled={!donor.available}
-          className="w-full btn-primary flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Send Request
-        </button>
-      </div>
+      {onSendRequest && (
+        <div className="mt-6">
+          <button
+            onClick={() => onSendRequest(donor)}
+            disabled={!donor.available}
+            className="w-full btn-primary flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Send Request
+          </button>
+        </div>
+      )}
     </div>
   );
 };

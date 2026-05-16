@@ -7,13 +7,30 @@ import { Activity, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const DonorDashboard = () => {
   const { user, setUser } = useContext(AuthContext);
+  const [donor, setDonor] = useState(null);
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [loadingDonor, setLoadingDonor] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
+    fetchDonorProfile();
     fetchRequests();
   }, []);
+
+  const fetchDonorProfile = async () => {
+    try {
+      const res = await api.get('/auth/me');
+      setDonor(res.data);
+      // Update global context to ensure consistency
+      setUser(prev => ({ ...prev, ...res.data }));
+    } catch (error) {
+      console.error('Failed to load donor profile', error);
+    } finally {
+      setLoadingDonor(false);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -22,17 +39,34 @@ const DonorDashboard = () => {
     } catch (error) {
       toast.error('Failed to load requests');
     } finally {
-      setLoading(false);
+      setLoadingRequests(false);
     }
   };
 
   const toggleAvailability = async () => {
+    if (toggling || !donor) return;
+    setToggling(true);
     try {
-      const res = await api.put('/donors/availability');
-      setUser({ ...user, available: res.data.available });
-      toast.success(`You are now ${res.data.available ? 'available' : 'unavailable'} for donation`);
+      const targetStatus = !donor.available;
+      const res = await api.put('/donors/availability', { available: targetStatus });
+      
+      const newAvailable = res.data && res.data.available !== undefined ? res.data.available : targetStatus;
+      
+      setDonor(prev => {
+        if (!prev) return prev;
+        return { ...prev, available: newAvailable };
+      });
+      
+      setUser(prev => {
+        if (!prev) return prev;
+        return { ...prev, available: newAvailable };
+      });
+      
+      toast.success('Availability updated successfully');
     } catch (error) {
-      toast.error('Failed to update availability');
+      toast.error(error.response?.data?.message || 'Failed to update availability');
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -49,7 +83,21 @@ const DonorDashboard = () => {
     }
   };
 
-  if (loading) return <div className="h-[80vh]"><Loader /></div>;
+  if (loadingDonor || loadingRequests) {
+    return <div className="h-[80vh]"><Loader /></div>;
+  }
+  
+  if (!donor || donor.available === undefined) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div className="bg-red-50 text-red-600 p-6 rounded-2xl inline-block border border-red-100 shadow-sm">
+          <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <h2 className="text-xl font-bold text-red-800 mb-1">Unable to load donor information</h2>
+          <p className="text-red-600 text-sm">Please try refreshing the page or logging in again.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -63,18 +111,19 @@ const DonorDashboard = () => {
           <span className="font-medium text-gray-700">Availability Status:</span>
           <button
             onClick={toggleAvailability}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              user?.available ? 'bg-green-500' : 'bg-gray-200'
+            disabled={toggling}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
+              donor?.available ? 'bg-green-500' : 'bg-gray-200'
             }`}
           >
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                user?.available ? 'translate-x-5' : 'translate-x-0'
+                donor?.available ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>
-          <span className={user?.available ? 'text-green-600 font-bold' : 'text-gray-500 font-bold'}>
-            {user?.available ? 'Available' : 'Unavailable'}
+          <span className={donor?.available ? 'text-green-600 font-bold' : 'text-gray-500 font-bold'}>
+            {donor?.available ? 'Available' : 'Unavailable'}
           </span>
         </div>
       </div>
