@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     role: 'recipient',
     bloodGroup: 'A+',
     phone: '',
@@ -16,6 +18,10 @@ const Register = () => {
     state: '',
     address: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState([]);
+  const [passwordStrength, setPasswordStrength] = useState({ label: '', color: '' });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -36,8 +42,32 @@ const Register = () => {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  const validatePassword = (pwd) => {
+    const errors = [];
+    if (pwd.length < 8) errors.push("Password must be at least 8 characters long");
+    if (!/(?=.*[A-Z])/.test(pwd)) errors.push("Password must contain at least one uppercase letter");
+    if (!/(?=.*[a-z])/.test(pwd)) errors.push("Password must contain at least one lowercase letter");
+    if (!/(?=.*\d)/.test(pwd)) errors.push("Password must contain at least one number");
+    if (!/(?=.*[@#$%^&*!])/.test(pwd)) errors.push("Password must contain at least one special character (@#$%^&*!)");
+    
+    setPasswordErrors(errors);
+
+    if (pwd.length === 0) {
+      setPasswordStrength({ label: '', color: '' });
+    } else if (errors.length === 0) {
+      setPasswordStrength({ label: 'Strong 🟢', color: 'text-green-600' });
+    } else if (errors.length <= 2 && pwd.length >= 6) {
+      setPasswordStrength({ label: 'Medium 🟡', color: 'text-yellow-500' });
+    } else {
+      setPasswordStrength({ label: 'Weak 🔴', color: 'text-red-500' });
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'password') {
+      validatePassword(e.target.value);
+    }
   };
 
   const handleSendEmailOTP = async () => {
@@ -86,6 +116,14 @@ const Register = () => {
     e.preventDefault();
     if (!isEmailVerified) {
       toast.error('Please verify your email first');
+      return;
+    }
+    if (passwordErrors.length > 0) {
+      toast.error('Please ensure your password meets all requirements');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
     setIsLoading(true);
@@ -219,16 +257,59 @@ const Register = () => {
                 </div>
               )}
 
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">Password</label>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="mt-1 input-field"
-                />
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    required
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="pr-10 input-field"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {passwordStrength.label && (
+                  <div className="mt-1 text-sm">
+                    Strength: <span className={`font-semibold ${passwordStrength.color}`}>{passwordStrength.label}</span>
+                  </div>
+                )}
+                {formData.password && passwordErrors.length > 0 && (
+                  <ul className="mt-1 text-xs text-red-500 list-disc list-inside">
+                    {passwordErrors.map((err, i) => <li key={i}>{err}</li>)}
+                  </ul>
+                )}
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="pr-10 input-field"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <div className="mt-1 text-sm text-red-500">Passwords do not match</div>
+                )}
               </div>
 
               <div>
@@ -282,7 +363,7 @@ const Register = () => {
             <div>
               <button
                 type="submit"
-                disabled={isLoading || !isEmailVerified}
+                disabled={isLoading || !isEmailVerified || passwordErrors.length > 0 || formData.password !== formData.confirmPassword}
                 className="w-full btn-primary py-3 flex justify-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Creating account...' : 'Create Account'}

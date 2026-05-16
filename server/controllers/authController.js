@@ -23,6 +23,11 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&*!])[A-Za-z\d@#$%^&*!]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ message: 'Password does not meet requirements' });
+    }
+
     const user = await User.create({
       name,
       email,
@@ -160,4 +165,35 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getMe, sendOtp, verifyOtp };
+// @desc    Reset password
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) return res.status(400).json({ message: 'All fields are required' });
+
+    const storedData = otpStore.get(email);
+    if (!storedData || Date.now() > storedData.expiresAt || storedData.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&*!])[A-Za-z\d@#$%^&*!]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ message: 'Password does not meet requirements' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.password = newPassword;
+    await user.save();
+    otpStore.delete(email);
+
+    res.status(200).json({ message: 'Password reset successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe, sendOtp, verifyOtp, resetPassword };
