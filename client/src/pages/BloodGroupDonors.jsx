@@ -98,14 +98,14 @@ const BloodGroupDonors = () => {
           donorIds: bulkData.donors.map(d => d._id),
           bloodGroup: bloodGroup
         });
-        toast.success(`Requests sent to ${res.data.created} donors in ${bloodGroup} group.`);
+        toast.success('Blood request sent successfully 🩸');
       } else {
         await api.post('/requests', {
           ...requestData,
           donorId: selectedDonor._id,
           bloodGroup: selectedDonor.bloodGroup
         });
-        toast.success(`Request sent to ${selectedDonor.name}`);
+        toast.success('Blood request sent successfully 🩸');
       }
       closeRequestModal();
     } catch (error) {

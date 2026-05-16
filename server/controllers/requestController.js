@@ -10,6 +10,10 @@ const createRequest = async (req, res) => {
   try {
     const { donorId, bloodGroup, units, hospital, city, urgency, message } = req.body;
 
+    if (!bloodGroup || !units || !hospital || !city) {
+      return res.status(400).json({ message: 'Please provide all required fields' });
+    }
+
     const request = await BloodRequest.create({
       recipient: req.user._id,
       donor: donorId,
@@ -27,16 +31,18 @@ const createRequest = async (req, res) => {
       const donor = await User.findById(donorId);
       if (donor) {
         const emailMessage = `
-          <h3>New Blood Request</h3>
-          <p>You have a new blood request for ${units} units of ${bloodGroup} blood at ${hospital}, ${city}.</p>
-          <p>Urgency: <strong>${urgency}</strong></p>
-          <p>Message: ${message || 'No message provided'}</p>
-          <p>Please log in to your dashboard to accept or reject this request.</p>
+          <p><strong>Donor Name:</strong> ${donor.name}</p>
+          <p><strong>Recipient Name:</strong> ${req.user.name}</p>
+          <p><strong>Blood Group:</strong> ${bloodGroup}</p>
+          <p><strong>Location:</strong> ${hospital}, ${city}</p>
+          <p><strong>Phone Number:</strong> ${req.user.phone}</p>
+          <br/>
+          <p>A nearby recipient urgently requires blood. Please login to Bloodio and respond.</p>
         `;
         
         await sendEmail({
           email: donor.email,
-          subject: `Urgent: Blood Request (${bloodGroup})`,
+          subject: 'Bloodio Emergency Alert 🩸',
           message: emailMessage,
         });
       }
@@ -57,6 +63,10 @@ const createBulkRequest = async (req, res) => {
 
     if (!donorIds || donorIds.length === 0) {
       return res.status(400).json({ message: 'No donors selected' });
+    }
+    
+    if (!bloodGroup || !units || !hospital || !city) {
+      return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
     // Check existing pending requests between recipient and these donors
@@ -95,16 +105,18 @@ const createBulkRequest = async (req, res) => {
 
     const emailPromises = donors.map(donor => {
       const emailMessage = `
-        <h3>New Blood Request</h3>
-        <p>You have a new blood request for ${units} units of ${bloodGroup} blood at ${hospital}, ${city}.</p>
-        <p>Urgency: <strong>${urgency}</strong></p>
-        <p>Message: ${message || 'No message provided'}</p>
-        <p>Please log in to your dashboard to accept or reject this request.</p>
+        <p><strong>Donor Name:</strong> ${donor.name}</p>
+        <p><strong>Recipient Name:</strong> ${req.user.name}</p>
+        <p><strong>Blood Group:</strong> ${bloodGroup}</p>
+        <p><strong>Location:</strong> ${hospital}, ${city}</p>
+        <p><strong>Phone Number:</strong> ${req.user.phone}</p>
+        <br/>
+        <p>A nearby recipient urgently requires blood. Please login to Bloodio and respond.</p>
       `;
       
       return sendEmail({
         email: donor.email,
-        subject: `Urgent: Blood Request (${bloodGroup})`,
+        subject: 'Bloodio Emergency Alert 🩸',
         message: emailMessage,
       });
     });

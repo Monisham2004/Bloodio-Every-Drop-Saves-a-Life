@@ -137,7 +137,7 @@ const BloodGroupDetails = () => {
         filteredDonors.forEach(d => {
           newStatuses[d._id] = { status: 'Pending', isUrgent };
         });
-        toast.success('Request sent successfully');
+        toast.success('Blood request sent successfully 🩸');
       } else {
         // Send to single donor
         await api.post('/requests', {
@@ -147,7 +147,7 @@ const BloodGroupDetails = () => {
         });
         
         newStatuses[requestTarget._id] = { status: 'Pending', isUrgent };
-        toast.success('Request sent successfully');
+        toast.success('Blood request sent successfully 🩸');
       }
       
       setSentRequests(newStatuses);

@@ -150,49 +150,69 @@ const DonorDashboard = () => {
               <div key={request._id} className="p-6 hover:bg-gray-50 transition">
                 <div className="flex flex-col md:flex-row justify-between gap-6">
                   <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-bold text-gray-900">{request.hospital}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        request.urgency === 'Critical' ? 'bg-red-100 text-red-800' :
-                        request.urgency === 'Urgent' ? 'bg-orange-100 text-orange-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {request.urgency}
-                      </span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        request.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                        request.status === 'Accepted' ? 'bg-green-100 text-green-800' :
-                        request.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {request.status}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                      <div>
-                        <span className="block text-gray-400">Patient/Recipient</span>
-                        <span className="font-medium">{request.recipient?.name || 'Unknown'}</span>
-                      </div>
-                      <div>
-                        <span className="block text-gray-400">Units Needed</span>
-                        <span className="font-medium text-primary-600">{request.units} Units</span>
-                      </div>
-                      <div>
-                        <span className="block text-gray-400">City</span>
-                        <span className="font-medium">{request.city}</span>
-                      </div>
-                      <div>
-                        <span className="block text-gray-400">Date</span>
-                        <span className="font-medium">{new Date(request.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    
-                    {request.message && (
-                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm">
-                        <span className="font-medium text-gray-700">Message: </span>
-                        {request.message}
-                      </div>
+                    {request.status === 'Pending' ? (
+                      <>
+                        <h3 className="text-xl font-bold text-red-600 mb-4">Emergency Blood Request 🩸</h3>
+                        <div className="space-y-2 text-sm text-gray-700">
+                          <div className="flex"><span className="w-32 font-semibold text-gray-900">Recipient Name:</span> <span>{request.recipient?.name || 'Unknown'}</span></div>
+                          <div className="flex"><span className="w-32 font-semibold text-gray-900">Blood Group:</span> <span className="text-red-600 font-bold">{request.bloodGroup}</span></div>
+                          <div className="flex"><span className="w-32 font-semibold text-gray-900">Location:</span> <span>{request.hospital}, {request.city}</span></div>
+                          <div className="flex"><span className="w-32 font-semibold text-gray-900">Phone:</span> <span>{request.recipient?.phone || 'Unknown'}</span></div>
+                          <div className="flex"><span className="w-32 font-semibold text-gray-900">Status:</span> <span className="text-yellow-600 font-medium">Pending</span></div>
+                        </div>
+                        {request.message && (
+                          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm mt-3">
+                            <span className="font-medium text-gray-700">Message: </span>
+                            {request.message}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-bold text-gray-900">{request.hospital}</h3>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            request.urgency === 'Critical' ? 'bg-red-100 text-red-800' :
+                            request.urgency === 'Urgent' ? 'bg-orange-100 text-orange-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {request.urgency}
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            request.status === 'Accepted' ? 'bg-green-100 text-green-800' :
+                            request.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {request.status}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                          <div>
+                            <span className="block text-gray-400">Patient/Recipient</span>
+                            <span className="font-medium">{request.recipient?.name || 'Unknown'}</span>
+                          </div>
+                          <div>
+                            <span className="block text-gray-400">Units Needed</span>
+                            <span className="font-medium text-primary-600">{request.units} Units</span>
+                          </div>
+                          <div>
+                            <span className="block text-gray-400">City</span>
+                            <span className="font-medium">{request.city}</span>
+                          </div>
+                          <div>
+                            <span className="block text-gray-400">Date</span>
+                            <span className="font-medium">{new Date(request.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        
+                        {request.message && (
+                          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm">
+                            <span className="font-medium text-gray-700">Message: </span>
+                            {request.message}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   
