@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import api from '../api/axios';
 import { Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
@@ -48,7 +48,7 @@ const Register = () => {
     if (!/(?=.*[a-z])/.test(pwd)) errors.push("Password must contain at least one lowercase letter");
     if (!/(?=.*\d)/.test(pwd)) errors.push("Password must contain at least one number");
     if (!/(?=.*[@#$%^&*!])/.test(pwd)) errors.push("Password must contain at least one special character (@#$%^&*!)");
-    
+
     setPasswordErrors(errors);
 
     if (pwd.length === 0) {
@@ -74,10 +74,10 @@ const Register = () => {
       toast.error('Please enter an email address');
       return;
     }
-    
+
     setIsEmailVerifying(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/send-otp`, { email: formData.email });
+      await api.post('/auth/send-otp', { email: formData.email });
       setEmailOtpSent(true);
       setResendTimer(30);
       toast.success('OTP sent successfully');
@@ -94,10 +94,10 @@ const Register = () => {
       toast.error('Please enter a valid 6-digit OTP');
       return;
     }
-    
+
     setIsEmailVerifying(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/verify-otp`, { 
+      await api.post('/auth/verify-otp', {
         email: formData.email,
         otp: emailOtp
       });
@@ -129,9 +129,9 @@ const Register = () => {
     try {
       const user = await register(formData);
       toast.success('Registration successful!');
-      
+
       navigate('/donor/dashboard');
-      
+
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed');
     } finally {
@@ -154,7 +154,7 @@ const Register = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
         <div className="bg-white py-8 px-4 shadow-sm sm:rounded-xl border border-gray-100 sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            
+
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Blood Group *</label>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import api from '../api/axios';
 import { Mail, Droplet, Eye, EyeOff } from 'lucide-react';
 
 const ForgotPassword = () => {
@@ -48,7 +48,7 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/send-otp`, { email });
+      await api.post('/auth/send-otp', { email });
       toast.success('OTP sent successfully');
       setStep(2);
     } catch (error) {
@@ -70,7 +70,7 @@ const ForgotPassword = () => {
     }
     setIsLoading(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/reset-password`, { 
+      await api.post('/auth/reset-password', { 
         email, 
         otp, 
         newPassword 
