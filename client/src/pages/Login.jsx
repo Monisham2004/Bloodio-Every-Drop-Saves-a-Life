@@ -19,9 +19,11 @@ const Login = () => {
       const user = await login(email, password);
       toast.success('Logged in successfully!');
       
-      if (user.role === 'admin') navigate('/admin');
-      else if (user.role === 'donor') navigate('/donor/dashboard');
-      else navigate('/recipient/dashboard');
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/donor/dashboard');
+      }
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed');

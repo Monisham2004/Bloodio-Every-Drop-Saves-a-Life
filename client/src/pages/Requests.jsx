@@ -56,7 +56,7 @@ const Requests = () => {
                         {request.status}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900">Requested from {request.donor?.name || 'Unknown Donor'}</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Request sent to {request.donor?.name || 'Unknown Donor'}</h3>
                     <p className="text-gray-600 text-sm">{request.hospital}, {request.city}</p>
                     {request.message && (
                       <p className="text-sm text-gray-500 italic mt-2 border-l-2 border-gray-200 pl-2">

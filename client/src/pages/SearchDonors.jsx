@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import BloodGroupCard from '../components/BloodGroupCard';
@@ -10,6 +10,7 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 const SearchDonors = () => {
   const [donors, setDonors] = useState([]);
+  const [groupedCounts, setGroupedCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useState({
     bloodGroup: '',
@@ -19,17 +20,24 @@ const SearchDonors = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchDonors = async () => {
+    const fetchStats = async () => {
       try {
-        const res = await api.get('/donors/search');
-        setDonors(res.data);
+        const res = await api.get('/users/stats');
+        const counts = {};
+        BLOOD_GROUPS.forEach(bg => counts[bg] = 0); // Initialize all to 0
+        if (Array.isArray(res.data)) {
+          res.data.forEach(stat => {
+            counts[stat._id] = stat.count;
+          });
+        }
+        setGroupedCounts(counts);
       } catch (error) {
-        console.error('Failed to fetch donors:', error);
+        console.error('Failed to fetch stats:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchDonors();
+    fetchStats();
   }, []);
 
   const handleSearch = async (e) => {
@@ -40,7 +48,7 @@ const SearchDonors = () => {
       if (searchParams.bloodGroup) params.append('bloodGroup', searchParams.bloodGroup);
       if (searchParams.city) params.append('city', searchParams.city);
       
-      const res = await api.get(`/donors/search?${params.toString()}`);
+      const res = await api.get(`/users/search?${params.toString()}`);
       setDonors(res.data);
     } catch (error) {
       toast.error('Failed to search donors');
@@ -49,13 +57,7 @@ const SearchDonors = () => {
     }
   };
 
-  const groupedCounts = useMemo(() => {
-    const counts = {};
-    BLOOD_GROUPS.forEach(bg => {
-      counts[bg] = donors.filter(d => d.bloodGroup === bg).length;
-    });
-    return counts;
-  }, [donors]);
+
 
   const handleCardClick = (bg) => {
     let url = `/search-donors/${encodeURIComponent(bg)}`;
@@ -71,7 +73,7 @@ const SearchDonors = () => {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-3 tracking-tight flex items-center justify-center gap-3">
             <Search className="w-8 h-8 text-primary-600" />
-            Find Blood Donors
+            Find Blood
           </h1>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto">
             Select the blood group you need to find available donors
@@ -133,7 +135,7 @@ const SearchDonors = () => {
                 />
               );
             })}
-            {donors.length === 0 && (
+            {donors.length === 0 && (searchParams.bloodGroup || searchParams.city) && (
               <div className="col-span-full p-12 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100">
                 No donors found matching your search criteria.
               </div>

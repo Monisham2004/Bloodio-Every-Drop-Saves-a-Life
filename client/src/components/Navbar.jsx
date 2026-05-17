@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Droplet, Menu, X, LogOut, User as UserIcon } from 'lucide-react';
@@ -7,6 +7,7 @@ const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const dropdownRef = useRef(null);
 
   const handleLogout = () => {
     logout();
@@ -14,21 +15,43 @@ const Navbar = () => {
     setIsOpen(false);
   };
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const NavLinks = () => (
     <>
       <Link to="/" className="text-gray-600 hover:text-primary-600 font-medium transition" onClick={() => setIsOpen(false)}>Home</Link>
       
-      {user?.role === 'donor' && (
+      {user && user.role !== 'admin' && (
         <>
-          <Link to="/donor/dashboard" className="text-gray-600 hover:text-primary-600 font-medium transition" onClick={() => setIsOpen(false)}>Dashboard</Link>
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="text-gray-600 hover:text-primary-600 font-medium transition flex items-center gap-1"
+            >
+              Dashboard ▼
+            </button>
+            {isDropdownOpen && (
+              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100 py-1" style={{ zIndex: 9999 }}>
+                <Link to="/donor/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsOpen(false); setIsDropdownOpen(false); }}>Donor Dashboard</Link>
+                <Link to="/recipient/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => { setIsOpen(false); setIsDropdownOpen(false); }}>Recipient Dashboard</Link>
+              </div>
+            )}
+          </div>
+          
+          <Link to="/search-donors" className="text-gray-600 hover:text-primary-600 font-medium transition" onClick={() => setIsOpen(false)}>Find Blood</Link>
           <Link to="/donor/profile" className="text-gray-600 hover:text-primary-600 font-medium transition" onClick={() => setIsOpen(false)}>Profile</Link>
-        </>
-      )}
-
-      {user?.role === 'recipient' && (
-        <>
-          <Link to="/recipient/dashboard" className="text-gray-600 hover:text-primary-600 font-medium transition" onClick={() => setIsOpen(false)}>Dashboard</Link>
-          <Link to="/search-donors" className="text-gray-600 hover:text-primary-600 font-medium transition" onClick={() => setIsOpen(false)}>Find Donors</Link>
         </>
       )}
 

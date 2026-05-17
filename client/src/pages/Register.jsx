@@ -11,7 +11,6 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'recipient',
     bloodGroup: 'A+',
     phone: '',
     city: '',
@@ -131,8 +130,7 @@ const Register = () => {
       const user = await register(formData);
       toast.success('Registration successful!');
       
-      if (user.role === 'donor') navigate('/donor/dashboard');
-      else navigate('/recipient/dashboard');
+      navigate('/donor/dashboard');
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed');
@@ -159,35 +157,21 @@ const Register = () => {
             
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Role</label>
+                <label className="block text-sm font-medium text-gray-700">Blood Group *</label>
                 <select
-                  name="role"
-                  value={formData.role}
+                  name="bloodGroup"
+                  value={formData.bloodGroup}
                   onChange={handleChange}
                   className="mt-1 input-field"
+                  required
                 >
-                  <option value="recipient">I need blood (Recipient)</option>
-                  <option value="donor">I want to donate (Donor)</option>
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
                 </select>
               </div>
 
-              {formData.role === 'donor' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Blood Group</label>
-                  <select
-                    name="bloodGroup"
-                    value={formData.bloodGroup}
-                    onChange={handleChange}
-                    className="mt-1 input-field"
-                  >
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                      <option key={bg} value={bg}>{bg}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className={formData.role !== 'donor' ? 'sm:col-span-2' : ''}>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Full Name</label>
                 <input
                   type="text"

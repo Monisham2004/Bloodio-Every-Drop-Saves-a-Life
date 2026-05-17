@@ -134,26 +134,38 @@ const createBulkRequest = async (req, res) => {
 // @access  Private
 const getMyRequests = async (req, res) => {
   try {
+    const { type } = req.query;
     let requests;
-    if (req.user.role === 'donor') {
-      requests = await BloodRequest.find({ donor: req.user._id })
+    
+    if (req.user.role === 'admin') {
+      requests = await BloodRequest.find()
+        .populate('donor', 'name email phone')
         .populate('recipient', 'name email phone')
         .sort('-createdAt');
-    } else if (req.user.role === 'recipient') {
+    } else if (type === 'incoming') {
+      requests = await BloodRequest.find({ 
+        donor: req.user._id,
+        recipient: { $ne: req.user._id }
+      })
+        .populate('recipient', 'name email phone')
+        .sort('-createdAt');
+    } else if (type === 'outgoing') {
       requests = await BloodRequest.find({ recipient: req.user._id })
         .populate('donor', 'name email phone')
         .sort('-createdAt');
     } else {
-      // Admin gets all
-      requests = await BloodRequest.find()
-        .populate('donor', 'name email')
-        .populate('recipient', 'name email')
+      requests = await BloodRequest.find({
+        $or: [{ donor: req.user._id }, { recipient: req.user._id }]
+      })
+        .populate('donor', 'name email phone')
+        .populate('recipient', 'name email phone')
         .sort('-createdAt');
     }
     
     res.json(requests);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.log(error);
+    res.status(500).json({ requests: [], available: false, location: null });
   }
 };
 
@@ -169,8 +181,8 @@ const updateRequestStatus = async (req, res) => {
       return res.status(404).json({ message: 'Request not found' });
     }
 
-    // Only donor can accept/reject
-    if (req.user.role === 'donor' && request.donor._id.toString() !== req.user._id.toString()) {
+    // Only the assigned donor can accept/reject
+    if (request.donor._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this request' });
     }
 
@@ -192,7 +204,7 @@ const updateRequestStatus = async (req, res) => {
     }
 
     // If completed, add to donation history
-    if (status === 'Completed' && req.user.role === 'donor') {
+    if (status === 'Completed') {
       await DonationHistory.create({
         donor: request.donor._id,
         recipient: request.recipient._id,

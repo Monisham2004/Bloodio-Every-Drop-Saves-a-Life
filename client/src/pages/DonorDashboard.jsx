@@ -13,6 +13,9 @@ const DonorDashboard = () => {
   const [loadingDonor, setLoadingDonor] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [showLocationPopup, setShowLocationPopup] = useState(false);
+  const [locationName, setLocationName] = useState('Not Updated');
+  const [lastUpdated, setLastUpdated] = useState('');
 
   useEffect(() => {
     fetchDonorProfile();
@@ -23,10 +26,17 @@ const DonorDashboard = () => {
     try {
       const res = await api.get('/auth/me');
       setDonor(res.data);
-      // Update global context to ensure consistency
+      if (res.data.location && res.data.location.lat) {
+        if (res.data.location.areaName) {
+          setLocationName(res.data.location.areaName);
+        } else {
+          setLocationName(`${res.data.location.lat.toFixed(4)}, ${res.data.location.lng.toFixed(4)}`);
+        }
+      }
       setUser(prev => ({ ...prev, ...res.data }));
     } catch (error) {
       console.error('Failed to load donor profile', error);
+      setDonor({ available: false, location: null, requests: [] });
     } finally {
       setLoadingDonor(false);
     }
@@ -34,10 +44,12 @@ const DonorDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      const res = await api.get('/requests/my');
-      setRequests(res.data);
+      const res = await api.get('/requests/my?type=incoming');
+      setRequests(Array.isArray(res.data) ? res.data : (res.data.requests || []));
     } catch (error) {
+      console.error('Failed to load requests', error);
       toast.error('Failed to load requests');
+      setRequests([]);
     } finally {
       setLoadingRequests(false);
     }
@@ -45,10 +57,22 @@ const DonorDashboard = () => {
 
   const toggleAvailability = async () => {
     if (toggling || !donor) return;
+    
+    if (!donor.available) {
+      // OFF to ON
+      setShowLocationPopup(true);
+      return;
+    }
+    
+    executeToggle(false);
+  };
+
+  const executeToggle = async (withLocation) => {
+    setShowLocationPopup(false);
     setToggling(true);
     try {
       const targetStatus = !donor.available;
-      const res = await api.put('/donors/availability', { available: targetStatus });
+      const res = await api.put('/users/availability', { available: targetStatus });
       
       const newAvailable = res.data && res.data.available !== undefined ? res.data.available : targetStatus;
       
@@ -63,10 +87,56 @@ const DonorDashboard = () => {
       });
       
       toast.success('Availability updated successfully');
+      
+      if (withLocation) {
+        updateLocation();
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update availability');
     } finally {
       setToggling(false);
+    }
+  };
+
+  const updateLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        let areaName = 'Location updated';
+        
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.address) {
+              const localArea = data.address.suburb || data.address.neighbourhood || data.address.village || data.address.town || data.address.city_district || data.address.county;
+              const city = data.address.city || data.address.state_district || data.address.state;
+              if (localArea && city && localArea !== city) {
+                areaName = `${localArea}, ${city}`;
+              } else if (localArea || city) {
+                areaName = localArea || city;
+              } else if (data.display_name) {
+                areaName = data.display_name.split(',').slice(0, 2).join(', ');
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Geocoding failed", err);
+        }
+
+        try {
+          await api.put('/users/profile', { location: { lat: latitude, lng: longitude, areaName } });
+          setLocationName(areaName);
+          setLastUpdated(new Date().toLocaleTimeString());
+          toast.success('Location updated successfully');
+        } catch (error) {
+          toast.error('Failed to save location');
+        }
+      }, () => {
+        toast.error('Location access denied');
+      });
+    } else {
+      toast.error('Geolocation not supported');
     }
   };
 
@@ -107,26 +177,66 @@ const DonorDashboard = () => {
           <p className="text-gray-600 mt-1">Manage your blood donation requests and availability.</p>
         </div>
         
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <span className="font-medium text-gray-700">Availability Status:</span>
-          <button
-            onClick={toggleAvailability}
-            disabled={toggling}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
-              donor?.available ? 'bg-green-500' : 'bg-gray-200'
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                donor?.available ? 'translate-x-5' : 'translate-x-0'
+        <div className="flex flex-col gap-3">
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <span className="font-medium text-gray-700">Availability Status:</span>
+            <button
+              onClick={toggleAvailability}
+              disabled={toggling}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
+                donor?.available ? 'bg-green-500' : 'bg-gray-200'
               }`}
-            />
-          </button>
-          <span className={donor?.available ? 'text-green-600 font-bold' : 'text-gray-500 font-bold'}>
-            {donor?.available ? 'Available' : 'Unavailable'}
-          </span>
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  donor?.available ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span className={donor?.available ? 'text-green-600 font-bold' : 'text-gray-500 font-bold'}>
+              {donor?.available ? 'Available' : 'Unavailable'}
+            </span>
+          </div>
+
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="font-medium text-gray-700 flex items-center gap-1">
+                📍 Current Location: <span className="font-semibold text-gray-900">{locationName}</span>
+              </div>
+              {lastUpdated && <div className="text-gray-500 mt-1">Last Updated: {lastUpdated}</div>}
+            </div>
+            <button 
+              onClick={updateLocation}
+              className="text-primary-600 hover:text-primary-700 font-medium bg-primary-50 px-3 py-1.5 rounded-lg transition text-center whitespace-nowrap"
+            >
+              Update Location
+            </button>
+          </div>
         </div>
       </div>
+
+      {showLocationPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Share your current location?</h3>
+            <p className="text-gray-600 mb-6">Updating your location helps recipients nearby find you faster during emergencies.</p>
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => executeToggle(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition font-medium"
+              >
+                Later
+              </button>
+              <button 
+                onClick={() => executeToggle(true)}
+                className="btn-primary px-4 py-2"
+              >
+                Use Current Location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">

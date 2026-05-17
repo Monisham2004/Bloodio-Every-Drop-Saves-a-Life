@@ -12,12 +12,12 @@ const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirect based on role if unauthorized
-    if (user.role === 'admin') return <Navigate to="/admin" replace />;
-    if (user.role === 'donor') return <Navigate to="/donor/dashboard" replace />;
-    if (user.role === 'recipient') return <Navigate to="/recipient/dashboard" replace />;
-    return <Navigate to="/" replace />;
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole = user.role === 'donor' || user.role === 'recipient' ? 'user' : user.role;
+    if (!allowedRoles.includes(userRole)) {
+      if (user.role === 'admin') return <Navigate to="/admin" replace />;
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <Outlet />;

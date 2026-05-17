@@ -33,19 +33,11 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              {/* Protected Donor Routes */}
-              <Route element={<ProtectedRoute allowedRoles={['donor']} />}>
+              {/* Protected Routes for User or Admin */}
+              <Route element={<ProtectedRoute allowedRoles={['user', 'admin']} />}>
                 <Route path="/donor/dashboard" element={<DonorDashboard />} />
                 <Route path="/donor/profile" element={<Profile />} />
-              </Route>
-
-              {/* Protected Recipient Routes */}
-              <Route element={<ProtectedRoute allowedRoles={['recipient']} />}>
                 <Route path="/recipient/dashboard" element={<RecipientDashboard />} />
-              </Route>
-
-              {/* Protected Routes for Recipient or Admin (Search Donors) */}
-              <Route element={<ProtectedRoute allowedRoles={['recipient', 'admin']} />}>
                 <Route path="/search-donors" element={<SearchDonors />} />
                 <Route path="/search-donors/:bloodGroup" element={<BloodGroupDetails />} />
                 <Route path="/blood-group-donors/:bloodGroup" element={<BloodGroupDonors />} />

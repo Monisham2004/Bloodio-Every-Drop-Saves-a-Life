@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs');
 
 const otpStore = new Map();
 
@@ -15,7 +16,7 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, bloodGroup, phone, city, state, address } = req.body;
+    const { name, email, password, bloodGroup, phone, city, state, address } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -32,8 +33,7 @@ const registerUser = async (req, res) => {
       name,
       email,
       password,
-      role,
-      bloodGroup: role === 'donor' ? bloodGroup : undefined,
+      bloodGroup,
       phone,
       city,
       state,
@@ -186,8 +186,16 @@ const resetPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    user.password = newPassword;
-    await user.save();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.updateOne(
+      { email },
+      { 
+        $set: { password: hashedPassword },
+        $unset: { resetOtp: 1, resetOtpExpiry: 1 }
+      }
+    );
     otpStore.delete(email);
 
     res.status(200).json({ message: 'Password reset successfully' });

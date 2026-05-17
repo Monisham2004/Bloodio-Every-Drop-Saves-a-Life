@@ -4,9 +4,9 @@ const { createRequest, createBulkRequest, getMyRequests, updateRequestStatus } =
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 
-router.post('/', protect, authorizeRoles('recipient'), createRequest);
-router.post('/bulk', protect, authorizeRoles('recipient'), createBulkRequest);
+router.post('/', protect, createRequest);
+router.post('/bulk', protect, createBulkRequest);
 router.get('/my', protect, getMyRequests);
-router.put('/:id/status', protect, authorizeRoles('donor', 'admin'), updateRequestStatus);
+router.put('/:id/status', protect, updateRequestStatus);
 
 module.exports = router;

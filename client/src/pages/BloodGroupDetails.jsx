@@ -42,7 +42,7 @@ const BloodGroupDetails = () => {
     const fetchDonors = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/donors/search?bloodGroup=${encodeURIComponent(decodedBloodGroup)}`);
+        const res = await api.get(`/users/search?bloodGroup=${encodeURIComponent(decodedBloodGroup)}`);
         setDonors(res.data);
       } catch (error) {
         toast.error('Failed to fetch donors for this blood group');

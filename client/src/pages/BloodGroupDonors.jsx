@@ -37,13 +37,19 @@ const BloodGroupDonors = () => {
   const fetchDonors = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append('bloodGroup', bloodGroup);
-      if (city) params.append('city', city);
+      // Added a timestamp to prevent caching old values
+      const t = Date.now();
+      const res = await api.get(`/users/search-donors/${encodeURIComponent(bloodGroup)}?t=${t}`);
       
-      const res = await api.get(`/donors/search?${params.toString()}`);
       // Sort donors by city
-      const sorted = res.data.sort((a, b) => a.city.localeCompare(b.city));
+      let sorted = res.data.sort((a, b) => (a.city || '').localeCompare(b.city || ''));
+      
+      // If there's a city filter in URL, we can still filter on frontend, 
+      // but the user explicitly requested to show ALL users with same blood group from backend.
+      if (city) {
+        sorted = sorted.filter(d => d.city && d.city.toLowerCase().includes(city.toLowerCase()));
+      }
+      
       setDonors(sorted);
     } catch (error) {
       toast.error('Failed to search donors');

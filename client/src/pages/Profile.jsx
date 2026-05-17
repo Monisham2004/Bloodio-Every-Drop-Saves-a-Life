@@ -40,7 +40,7 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.put('/donors/profile', formData);
+      const res = await api.put('/users/profile', formData);
       setUser({ ...user, name: res.data.name });
       toast.success('Profile updated successfully');
     } catch (error) {
@@ -72,21 +72,19 @@ const Profile = () => {
               />
             </div>
 
-            {user?.role === 'donor' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Blood Group</label>
-                <select
-                  name="bloodGroup"
-                  value={formData.bloodGroup}
-                  onChange={handleChange}
-                  className="mt-1 input-field"
-                >
-                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
-                    <option key={bg} value={bg}>{bg}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Blood Group</label>
+              <select
+                name="bloodGroup"
+                value={formData.bloodGroup}
+                onChange={handleChange}
+                className="mt-1 input-field"
+              >
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                  <option key={bg} value={bg}>{bg}</option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Phone Number</label>

@@ -15,7 +15,7 @@ const RecipientDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      const res = await api.get('/requests/my');
+      const res = await api.get('/requests/my?type=outgoing');
       setRequests(res.data);
     } catch (error) {
       toast.error('Failed to load requests');
@@ -83,7 +83,7 @@ const RecipientDashboard = () => {
                             {request.status}
                           </span>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">Requested from {request.donor?.name || 'Unknown Donor'}</h3>
+                        <h3 className="text-lg font-bold text-gray-900">Request sent to {request.donor?.name || 'Unknown Donor'}</h3>
                         <p className="text-gray-600 text-sm">{request.hospital}, {request.city}</p>
                       </div>
                       
